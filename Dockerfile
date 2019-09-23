@@ -44,7 +44,7 @@ RUN set -eux; \
 
 # CNI plugins
 FROM podmanbuildbase AS cniplugins
-ARG CNI_VERSION=0.8.2
+ARG CNI_VERSION=0.6.0
 RUN set -eux; \
 	mkdir -p "${GOPATH}/src/github.com/containernetworking"; \
 	wget -O - "https://github.com/containernetworking/plugins/archive/v${CNI_VERSION}.tar.gz" | tar -xzf - -C /tmp; \
