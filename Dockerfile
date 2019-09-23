@@ -21,7 +21,7 @@ RUN set -eux; \
 
 # podman
 FROM podmanbuildbase AS podman
-ARG PODMAN_VERSION=v1.6.0-rc1
+ARG PODMAN_VERSION=v1.5.1
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod
 RUN make install.tools
