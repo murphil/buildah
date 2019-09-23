@@ -2,6 +2,7 @@
 FROM golang:alpine AS runc
 ARG RUNC_VERSION=v1.0.0-rc8
 RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
 	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
 	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
 	cd src/github.com/opencontainers/runc; \
@@ -13,7 +14,9 @@ RUN set -eux; \
 
 # podman build base
 FROM golang:alpine AS podmanbuildbase
-RUN apk add --update --no-cache git make gcc pkgconf musl-dev btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev libseccomp-dev libselinux-dev ostree-dev openssl iptables bash go-md2man
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache git make gcc pkgconf musl-dev btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev libseccomp-dev libselinux-dev ostree-dev openssl iptables bash go-md2man
 
 
 # podman
@@ -55,7 +58,9 @@ RUN set -eux; \
 
 # slirp4netns
 FROM podmanbuildbase AS slirp4netns
-RUN apk add --update --no-cache git autoconf automake linux-headers
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache git autoconf automake linux-headers
 ARG SLIRP4NETNS_VERSION=v0.4.1
 WORKDIR /
 RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
@@ -68,7 +73,9 @@ RUN set -eux; \
 
 # fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
 FROM podmanbuildbase AS fuse-overlayfs
-RUN apk add --update --no-cache automake autoconf meson ninja clang eudev-dev
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache automake autoconf meson ninja clang eudev-dev
 ARG LIBFUSE_VERSION=fuse-3.6.2
 RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
 WORKDIR /libfuse
@@ -117,7 +124,9 @@ RUN set -eux; \
 	chmod +x /usr/local/bin/gosu; \
 	gosu nobody true
 # Install iptables & new-uidmap
-RUN apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --no-cache ca-certificates iptables ip6tables shadow-uidmap
 # Copy binaries from other images
 COPY --from=runc   /usr/local/bin/runc   /usr/local/bin/runc
 COPY --from=podman /usr/local/bin/podman /usr/local/bin/podman
