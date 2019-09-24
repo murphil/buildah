@@ -1,5 +1,5 @@
 FROM nnurphy/buildah:podmanbuildbase
-ARG CNI_VERSION=0.6.0
+ARG CNI_VERSION=0.7
 RUN set -eux; \
 	mkdir -p "${GOPATH}/src/github.com/containernetworking"; \
 	wget -O - "https://github.com/containernetworking/plugins/archive/v${CNI_VERSION}.tar.gz" | tar -xzf - -C /tmp; \
