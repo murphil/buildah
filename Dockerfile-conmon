@@ -1,4 +1,4 @@
-FROM nnurphy/bud-podmanbuildbase
+FROM nnurphy/buildah:podmanbuildbase
 ARG CONMON_VERSION=v2.0.1
 WORKDIR $GOPATH
 RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon

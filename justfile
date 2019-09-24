@@ -9,7 +9,7 @@ hello:
 
 
 bud stage:
-    docker build . -t nnurphy/bud-{{stage}} -f Dockerfile-{{stage}}
+    docker build . -t nnurphy/buildah:{{stage}} -f Dockerfile-{{stage}}
 
 build-base:
     just bud runc

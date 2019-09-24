@@ -1,4 +1,4 @@
-FROM nnurphy/bud-podmanbuildbase
+FROM nnurphy/buildah:podmanbuildbase
 ARG PODMAN_VERSION=v1.5.1
 RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
 WORKDIR $GOPATH/src/github.com/containers/libpod

@@ -1,4 +1,4 @@
-FROM nnurphy/bud-podmanbuildbase
+FROM nnurphy/buildah:podmanbuildbase
 ARG BUILDAH_VERSION=v1.11.2
 RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
 WORKDIR $GOPATH/src/github.com/containers/buildah
