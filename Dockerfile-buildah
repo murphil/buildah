@@ -1,0 +1,5 @@
+FROM nnurphy/bud-podmanbuildbase
+ARG BUILDAH_VERSION=v1.11.2
+RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
+WORKDIR $GOPATH/src/github.com/containers/buildah
+RUN make static && mv buildah.static /usr/local/bin/buildah

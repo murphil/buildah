@@ -1,0 +1,9 @@
+FROM nnurphy/bud-podmanbuildbase
+ARG CONMON_VERSION=v2.0.1
+WORKDIR $GOPATH
+RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+WORKDIR /conmon
+RUN set -eux; \
+	rm /usr/lib/libglib-2.0.so* /usr/lib/libintl.so*; \
+	make CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static'; \
+	install -D -m 755 bin/conmon /usr/libexec/podman/conmon

@@ -1,0 +1,11 @@
+FROM nnurphy/bud-podmanbuildbase
+ARG CNI_VERSION=0.6.0
+RUN set -eux; \
+	mkdir -p "${GOPATH}/src/github.com/containernetworking"; \
+	wget -O - "https://github.com/containernetworking/plugins/archive/v${CNI_VERSION}.tar.gz" | tar -xzf - -C /tmp; \
+	mv "/tmp/plugins-${CNI_VERSION}" "${GOPATH}/src/github.com/containernetworking/plugins"; \
+	for TYPE in main ipam meta; do \
+		for CNIPLUGIN in `ls ${GOPATH}/src/github.com/containernetworking/plugins/plugins/$TYPE`; do \
+			go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-extldflags '-static'" github.com/containernetworking/plugins/plugins/$TYPE/$CNIPLUGIN; \
+		done \
+	done

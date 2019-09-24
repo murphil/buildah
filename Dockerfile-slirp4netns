@@ -1,0 +1,12 @@
+FROM nnurphy/bud-podmanbuildbase
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache git autoconf automake linux-headers
+ARG SLIRP4NETNS_VERSION=v0.4.1
+WORKDIR /
+RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
+WORKDIR /slirp4netns
+RUN set -eux; \
+	./autogen.sh \
+	&& LDFLAGS=-static ./configure --prefix=/usr \
+	&& make

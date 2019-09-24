@@ -1,0 +1,11 @@
+FROM golang:alpine
+ARG RUNC_VERSION=v1.0.0-rc8
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
+	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
+	cd src/github.com/opencontainers/runc; \
+	make static BUILDTAGS='seccomp selinux ambient'; \
+	mv runc /usr/local/bin/runc; \
+	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
+	apk del --purge .build-deps

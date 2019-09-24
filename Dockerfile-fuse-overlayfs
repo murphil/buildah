@@ -1,0 +1,25 @@
+FROM nnurphy/bud-podmanbuildbase
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache automake autoconf meson ninja clang eudev-dev
+ARG LIBFUSE_VERSION=fuse-3.6.2
+RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
+WORKDIR /libfuse
+RUN set -eux; \
+	mkdir build; \
+	cd build; \
+	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static ..; \
+	ninja; \
+	ninja install
+# v0.3 + musl compat fix
+ARG FUSEOVERLAYFS_VERSION=v0.6.2
+RUN set -eux; \
+	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
+	cd /fuse-overlayfs; \
+	git checkout "${FUSEOVERLAYFS_VERSION}"; \
+	sh autogen.sh; \
+	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	make; \
+	make install; \
+	fuse-overlayfs --help >/dev/null
+

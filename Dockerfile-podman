@@ -1,0 +1,8 @@
+FROM nnurphy/bud-podmanbuildbase
+ARG PODMAN_VERSION=v1.5.1
+RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
+WORKDIR $GOPATH/src/github.com/containers/libpod
+RUN make install.tools
+RUN set -eux; \
+	make LDFLAGS="-w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	mv bin/podman /usr/local/bin/podman

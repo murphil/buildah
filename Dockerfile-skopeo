@@ -1,0 +1,7 @@
+FROM nnurphy/bud-podmanbuildbase
+ARG SKOPEO_VERSION=v0.1.39
+RUN git clone --branch ${SKOPEO_VERSION} https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
+WORKDIR $GOPATH/src/github.com/containers/skopeo
+RUN go build -ldflags "-extldflags '-static'" -tags "exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp" \
+	github.com/containers/skopeo/cmd/skopeo && \
+	mv skopeo /usr/local/bin/skopeo
