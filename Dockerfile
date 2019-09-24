@@ -1,11 +1,120 @@
-FROM nnurphy/buildah:runc as runc
-FROM nnurphy/buildah:podman as podman
-FROM nnurphy/buildah:conmon as conmon
-FROM nnurphy/buildah:cniplugins as cniplugins
-FROM nnurphy/buildah:skopeo as skopeo
-FROM nnurphy/buildah:fuse-overlayfs as fuse-overlayfs
-FROM nnurphy/buildah:slirp4netns as slirp4netns
-FROM nnurphy/buildah:buildah as buildah
+# runc
+FROM golang:alpine AS runc
+ARG RUNC_VERSION=v1.0.0-rc8
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --no-cache --virtual .build-deps gcc musl-dev libseccomp-dev make git bash; \
+	git clone --branch ${RUNC_VERSION} https://github.com/opencontainers/runc src/github.com/opencontainers/runc; \
+	cd src/github.com/opencontainers/runc; \
+	make static BUILDTAGS='seccomp selinux ambient'; \
+	mv runc /usr/local/bin/runc; \
+	rm -rf $GOPATH/src/github.com/opencontainers/runc; \
+	apk del --purge .build-deps
+
+
+# podman build base
+FROM golang:alpine AS podmanbuildbase
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache git make gcc pkgconf musl-dev btrfs-progs btrfs-progs-dev libassuan-dev lvm2-dev device-mapper glib-static libc-dev gpgme-dev protobuf-dev protobuf-c-dev libseccomp-dev libselinux-dev ostree-dev openssl iptables bash go-md2man
+
+
+# podman
+FROM podmanbuildbase AS podman
+ARG PODMAN_VERSION=v1.5.1
+RUN git clone --branch ${PODMAN_VERSION} https://github.com/containers/libpod src/github.com/containers/libpod
+WORKDIR $GOPATH/src/github.com/containers/libpod
+RUN make install.tools
+RUN set -eux; \
+	make LDFLAGS="-w -extldflags '-static'" BUILDTAGS='seccomp selinux varlink exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp'; \
+	mv bin/podman /usr/local/bin/podman
+
+
+# conmon
+FROM podmanbuildbase AS conmon
+ARG CONMON_VERSION=v2.0.1
+WORKDIR $GOPATH
+RUN git clone --branch ${CONMON_VERSION} https://github.com/containers/conmon.git /conmon
+WORKDIR /conmon
+RUN set -eux; \
+	rm /usr/lib/libglib-2.0.so* /usr/lib/libintl.so*; \
+	make CFLAGS='-std=c99 -Os -Wall -Wextra -Werror -static'; \
+	install -D -m 755 bin/conmon /usr/libexec/podman/conmon
+
+
+# CNI plugins
+FROM podmanbuildbase AS cniplugins
+ARG CNI_VERSION=0.6.0
+RUN set -eux; \
+	mkdir -p "${GOPATH}/src/github.com/containernetworking"; \
+	wget -O - "https://github.com/containernetworking/plugins/archive/v${CNI_VERSION}.tar.gz" | tar -xzf - -C /tmp; \
+	mv "/tmp/plugins-${CNI_VERSION}" "${GOPATH}/src/github.com/containernetworking/plugins"; \
+	for TYPE in main ipam meta; do \
+		for CNIPLUGIN in `ls ${GOPATH}/src/github.com/containernetworking/plugins/plugins/$TYPE`; do \
+			go build -o /usr/libexec/cni/$CNIPLUGIN -ldflags "-extldflags '-static'" github.com/containernetworking/plugins/plugins/$TYPE/$CNIPLUGIN; \
+		done \
+	done
+
+
+# slirp4netns
+FROM podmanbuildbase AS slirp4netns
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache git autoconf automake linux-headers
+ARG SLIRP4NETNS_VERSION=v0.4.1
+WORKDIR /
+RUN git clone --branch $SLIRP4NETNS_VERSION https://github.com/rootless-containers/slirp4netns.git
+WORKDIR /slirp4netns
+RUN set -eux; \
+	./autogen.sh \
+	&& LDFLAGS=-static ./configure --prefix=/usr \
+	&& make
+
+
+# fuse-overlay (derived from https://github.com/containers/fuse-overlayfs/blob/master/Dockerfile.static)
+FROM podmanbuildbase AS fuse-overlayfs
+RUN set -eux; \
+	sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories; \
+	apk add --update --no-cache automake autoconf meson ninja clang eudev-dev
+ARG LIBFUSE_VERSION=fuse-3.6.2
+RUN git clone --branch=${LIBFUSE_VERSION} https://github.com/libfuse/libfuse /libfuse
+WORKDIR /libfuse
+RUN set -eux; \
+	mkdir build; \
+	cd build; \
+	LDFLAGS="-lpthread" meson --prefix /usr -D default_library=static ..; \
+	ninja; \
+	ninja install
+# v0.3 + musl compat fix
+ARG FUSEOVERLAYFS_VERSION=v0.6.2
+RUN set -eux; \
+	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
+	cd /fuse-overlayfs; \
+	git checkout "${FUSEOVERLAYFS_VERSION}"; \
+	sh autogen.sh; \
+	LIBS="-ldl" LDFLAGS="-static" ./configure --prefix /usr; \
+	make; \
+	make install; \
+	fuse-overlayfs --help >/dev/null
+
+
+# skopeo
+FROM podmanbuildbase AS skopeo
+ARG SKOPEO_VERSION=v0.1.39
+RUN git clone --branch ${SKOPEO_VERSION} https://github.com/containers/skopeo $GOPATH/src/github.com/containers/skopeo
+WORKDIR $GOPATH/src/github.com/containers/skopeo
+RUN go build -ldflags "-extldflags '-static'" -tags "exclude_graphdriver_devicemapper containers_image_ostree_stub containers_image_openpgp" \
+	github.com/containers/skopeo/cmd/skopeo && \
+	mv skopeo /usr/local/bin/skopeo
+
+
+# buildah
+FROM podmanbuildbase AS buildah
+ARG BUILDAH_VERSION=v1.11.2
+RUN git clone --branch ${BUILDAH_VERSION} https://github.com/containers/buildah $GOPATH/src/github.com/containers/buildah
+WORKDIR $GOPATH/src/github.com/containers/buildah
+RUN make static && mv buildah.static /usr/local/bin/buildah
+
 
 FROM alpine:3.10
 # Add gosu for easy step-down from root
