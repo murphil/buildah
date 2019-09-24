@@ -12,7 +12,7 @@ RUN set -eux; \
 	ninja; \
 	ninja install
 # v0.3 + musl compat fix
-ARG FUSEOVERLAYFS_VERSION=v0.6.2
+ARG FUSEOVERLAYFS_VERSION=2cbd1c4a2d3ab06c4e39276363c74c6a9c62c0fe
 RUN set -eux; \
 	git clone https://github.com/containers/fuse-overlayfs /fuse-overlayfs; \
 	cd /fuse-overlayfs; \
