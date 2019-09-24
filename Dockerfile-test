@@ -1,0 +1,17 @@
+FROM nnurphy/qjs:apk-all as q
+FROM buildah/buildah
+
+RUN set -ex \
+  # apk
+  ; sed -i 's/dl-cdn.alpinelinux.org/mirror.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+  ; apk update && apk upgrade \
+  ; rm -rf /var/cache/apk/* \
+  ; apk add --no-cache sudo shadow \
+      tzdata wget grep sed \
+      curl git bash zsh neovim \
+      openssh-client openssh-server rsync \
+      tree jq sqlite python3 nodejs
+
+COPY --from=q /usr/local/bin/qjsbn /usr/local/bin/qjs
+
+CMD [ "zsh" ]

@@ -1,5 +1,7 @@
 run:
-    docker run --privileged --rm -it buildah/buildah sh
+    docker run --privileged --rm -it \
+        -v $HOME/Downloads:/world \
+        bud zsh
 
 build:
     docker build . -t buildah
