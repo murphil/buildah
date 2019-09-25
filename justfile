@@ -6,6 +6,9 @@ run:
 build:
     docker build . -t buildah -f Dockerfile-latest
 
+build-test:
+    docker build . -t bud -f Dockerfile-test
+
 hello:
     docker run --privileged buildah/buildah docker run alpine:3.9 echo hello from nested podman container
 

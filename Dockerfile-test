@@ -1,5 +1,5 @@
 FROM nnurphy/qjs:apk-all as q
-FROM buildah/buildah
+FROM nnurphy/buildah
 
 RUN set -ex \
   # apk
