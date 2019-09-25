@@ -4,7 +4,7 @@ run:
         bud zsh
 
 build:
-    docker build . -t buildah
+    docker build . -t buildah -f Dockerfile-latest
 
 hello:
     docker run --privileged buildah/buildah docker run alpine:3.9 echo hello from nested podman container
@@ -13,15 +13,23 @@ hello:
 bud stage:
     docker build . -t nnurphy/buildah:{{stage}} -f Dockerfile-{{stage}}
 
-build-base:
-    just bud runc
-    just bud podmanbuildbase
+baseimg := "runc podmanbuildbase"
+midimg := "podman conmon cniplugins slirp4netns fuse-overlayfs skopeo buildah"
 
-build-all:
-    just bud buildah
-    just bud skopeo
-    just bud fuse-overlayfs
-    just bud slirp4netns
-    just bud cniplugins
-    just bud conmon
-    just bud podman
+build-base:
+    #!/bin/bash
+    for i in {{baseimg}}; do
+        just bud $i
+    done
+
+build-mid:
+    #!/bin/bash
+    for i in {{midimg}}; do
+        just bud $i
+    done
+
+pull:
+    #!/bin/bash
+    for i in {{midimg}}; do
+        docker pull nnurphy/buildah:$i
+    done
